@@ -1,0 +1,11 @@
+{
+  "name": "web-scrapping",
+  "version": "1.0.0",
+  "description": "El mejor horario para salir",
+  "main": "index.mjs",
+  "author": "hecrey",
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer": "^22.5.0"
+  }
+}
