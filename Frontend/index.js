@@ -31,4 +31,4 @@ console.log(data);
   mostrarResultados()
   setInterval(()=>{
     mostrarResultados()
-  },3600000)
+  },3600000/2)

@@ -1,16 +1,22 @@
+
 import { createServer } from 'node:http';
 import puppeteer from 'puppeteer';
+import fetch from 'node-fetch';
 
-const resultados =[]
+const resultados = []
 const server = createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*'); // Permite todas las solicitudes CORS
 
   if (req.method === 'GET' && req.url.startsWith('/extraerDatos')) {
     const url = req.url.split('=')[1];
-
-    const data = await extraerDatos(decodeURIComponent(url));
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    try {
+      const data = await extraerDatos(decodeURIComponent(url));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(data));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('Error interno del servidor.\n');
+    }
   } else {
     res.writeHead(405, { 'Content-Type': 'text/plain' });
     res.end('Método no permitido.\n');
@@ -26,9 +32,13 @@ server.listen(3000, '127.0.0.1', () => {
 // Función para extraer los datos utilizando Puppeteer
 async function extraerDatos(url) {
   try {
+    const proxyURL = 'https://cors-anywhere.herokuapp.com/'; // Proxy público para evitar problemas de CORS
+    const response = await fetch(proxyURL + url);
+    const html = await response.text();
+
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
-    await page.goto(url);
+    await page.setContent(html);
 
     await page.waitForSelector('body');
 
@@ -60,6 +70,6 @@ async function extraerDatos(url) {
     return resultados;
   } catch (error) {
     console.error('Error al extraer datos:', error);
-    return { error: 'Error al extraer datos' };
+    throw error;
   }
 }
