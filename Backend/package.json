@@ -2,7 +2,7 @@
   "name": "web-scrapping",
   "version": "1.0.0",
   "description": "El mejor horario para salir",
-  "main": "index.mjs",
+  "main": "server.mjs",
   "author": "hecrey",
   "license": "MIT",
   "dependencies": {
