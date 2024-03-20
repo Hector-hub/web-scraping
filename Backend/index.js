@@ -1,61 +1,65 @@
+import { createServer } from 'node:http';
+import puppeteer from 'puppeteer';
+
+const resultados =[]
+const server = createServer(async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*'); // Permite todas las solicitudes CORS
+
+  if (req.method === 'GET' && req.url.startsWith('/extraerDatos')) {
+    const url = req.url.split('=')[1];
+
+    const data = await extraerDatos(decodeURIComponent(url));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } else {
+    res.writeHead(405, { 'Content-Type': 'text/plain' });
+    res.end('Método no permitido.\n');
+  }
+});
+
+// Inicia el servidor localmente en el puerto 3000
+server.listen(3000, '127.0.0.1', () => {
+  console.log('Servidor escuchando en http://127.0.0.1:3000/');
+});
 
 
-const puppeteer = require('puppeteer');
-
-// Array para almacenar los resultados y la hora de impresión
-const resultados = [];
-
-async function extraerDatos() {
+// Función para extraer los datos utilizando Puppeteer
+async function extraerDatos(url) {
   try {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
-    await page.goto('https://www.google.com/maps/dir/18.4507649,-69.9193002/Universidad+Iberoamericana,+Av.+Francia+129,+Santo+Domingo+10203/@18.471834,-69.9322297,14z/data=!4m10!4m9!1m1!4e1!1m5!1m1!1s0x8eaf89e0e548e50d:0x293769af0b2a3335!2m2!1d-69.9097635!2d18.4747545!3e0?entry=ttu');
+    await page.goto(url);
 
-    // Espera a que la página se cargue completamente
     await page.waitForSelector('body');
 
-    // Obtiene el contenido completo de la página
-    const contenidoPagina = await page.content();
-
-    // Busca los elementos con la clase deseada
-    const regex = /<div class="Fk3sm fontHeadlineSmall delay-light"[^>]*>(.*?)<\/div>/g;
-    const matches = [...contenidoPagina.matchAll(regex)];
-
-    // Obtiene la hora actual
+    const opciones = await page.evaluate(() => {
+      const divs = Array.from(document.querySelectorAll('.XdKEzd .Fk3sm.fontHeadlineSmall'));
+      return divs.map(div => div.innerText);
+    });
+    
     const horaActual = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
-
-    // Crea un objeto con los datos de esta ejecución
+    
     const datosEjecucion = {
       hora: horaActual,
-      opciones: matches.map((match) => match[1]),
+      opciones: opciones,
     };
-
-    // Agrega los datos al array de resultados
+      
     resultados.push(datosEjecucion);
 
-    // Ordena los resultados por el tiempo de opción 1 (asumiendo que opción 1 siempre está presente)
     resultados.sort((a, b) => {
       const tiempoOpcion1A = parseInt(a.opciones[0].split(' ')[0]);
       const tiempoOpcion1B = parseInt(b.opciones[0].split(' ')[0]);
       return tiempoOpcion1A - tiempoOpcion1B;
     });
 
-    // Imprime los resultados
-    resultados.forEach((resultado, index) => {
-      console.log(`Ejecución ${index + 1}:`);
-      console.log(`Hora: ${resultado.hora}`);
-      resultado.opciones.forEach((opcion, i) => {
-        console.log(`Opción ${i + 1}: ${opcion}`);
-      });
-      console.log('\n');
-    });
+    console.log(resultados);
 
     await browser.close();
     console.log(' ----------------------------');
+
+    return resultados;
   } catch (error) {
     console.error('Error al extraer datos:', error);
+    return { error: 'Error al extraer datos' };
   }
 }
-
-// Ejecuta la función cada hora
-setInterval(extraerDatos, 10000); // 1 hora = 3600000 ms
